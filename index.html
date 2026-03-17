@@ -1,357 +1,74 @@
 <!DOCTYPE html>
 <html lang="vi">
 <head>
+
 <meta charset="UTF-8">
-<title>Phòng thí nghiệm Hóa học 3D</title>
+<title>Bảng Tuần Hoàn Tương Tác</title>
+
+<link rel="stylesheet" href="css/style.css">
 
 <script src="https://cdn.jsdelivr.net/npm/three@0.158.0/build/three.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/three@0.158.0/examples/js/controls/OrbitControls.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
-<style>
-
-body{
-margin:0;
-font-family:Arial;
-background:#020617;
-color:white;
-}
-
-header{
-background:#0f172a;
-padding:15px;
-text-align:center;
-font-size:22px;
-}
-
-#bo_cuc{
-display:grid;
-grid-template-columns:300px 1fr;
-height:calc(100vh - 60px);
-}
-
-#bang_dieu_khien{
-background:#0f172a;
-padding:15px;
-overflow:auto;
-}
-
-#khung_3d{
-width:100%;
-height:100%;
-}
-
-button{
-padding:8px 12px;
-margin:4px;
-border:none;
-border-radius:6px;
-background:#3b82f6;
-color:white;
-cursor:pointer;
-}
-
-select{
-padding:6px;
-}
-
-canvas{
-max-width:100%;
-}
-
-</style>
 </head>
 
 <body>
 
-<header>⚗️ Phòng Thí Nghiệm Hóa Học Tương Tác</header>
+<header>
 
-<div id="bo_cuc">
+<h1>⚛️ Phòng Thí Nghiệm Hóa Học</h1>
 
-<div id="bang_dieu_khien">
+</header>
 
-<h3>🧪 Trình tạo phân tử</h3>
+<div id="layout">
 
-<select id="chon_nguyen_to">
-<option value="H">Hiđrô (H)</option>
-<option value="O">Oxi (O)</option>
-<option value="C">Cacbon (C)</option>
-<option value="N">Nitơ (N)</option>
-<option value="Cl">Clo (Cl)</option>
+<div id="sidebar">
+
+<h3>🧪 Molecule Builder</h3>
+
+<select id="elementSelect">
+
+<option value="H">Hiđrô</option>
+<option value="O">Oxi</option>
+<option value="C">Cacbon</option>
+<option value="N">Nitơ</option>
+
 </select>
 
-<br>
+<button onclick="addAtom()">Thêm nguyên tử</button>
 
-<button onclick="themNguyenTu()">Thêm nguyên tử</button>
-<button onclick="xoaPhanTu()">Xóa tất cả</button>
-
-<hr>
-
-<h3>🌌 Quỹ đạo electron</h3>
-
-<button onclick="hienOrbital('s')">Orbital s</button>
-<button onclick="hienOrbital('p')">Orbital p</button>
-<button onclick="hienOrbital('d')">Orbital d</button>
-<button onclick="hienOrbital('f')">Orbital f</button>
+<button onclick="clearMolecule()">Xóa</button>
 
 <hr>
 
-<h3>📊 Năng lượng ion hóa</h3>
+<h3>🌌 Electron Orbital</h3>
 
-<canvas id="bieu_do"></canvas>
+<button onclick="showOrbital('s')">s</button>
+<button onclick="showOrbital('p')">p</button>
+<button onclick="showOrbital('d')">d</button>
+<button onclick="showOrbital('f')">f</button>
+
+<hr>
+
+<h3>📊 Biểu đồ hóa học</h3>
+
+<canvas id="chart"></canvas>
 
 </div>
 
-<div id="khung_3d"></div>
+<div id="viewer">
+
+<div id="three"></div>
 
 </div>
 
-<script>
-
-/* TẠO CẢNH 3D */
-
-const canh = new THREE.Scene()
-
-const camera = new THREE.PerspectiveCamera(
-75,
-(window.innerWidth-300)/(window.innerHeight-60),
-0.1,
-1000
-)
-
-const trinh_ket_xuat = new THREE.WebGLRenderer({antialias:true})
-
-trinh_ket_xuat.setSize(window.innerWidth-300,window.innerHeight-60)
-
-document.getElementById("khung_3d").appendChild(trinh_ket_xuat.domElement)
-
-camera.position.z = 8
-
-new THREE.OrbitControls(camera,trinh_ket_xuat.domElement)
-
-/* ÁNH SÁNG */
-
-const anh_sang = new THREE.PointLight(0xffffff,1)
-
-anh_sang.position.set(5,5,5)
-
-canh.add(anh_sang)
-
-/* MÀU NGUYÊN TỬ */
-
-const mau_nguyen_to={
-H:0xffffff,
-O:0xff4444,
-C:0x444444,
-N:0x4444ff,
-Cl:0x22ff22
-}
-
-/* DANH SÁCH PHÂN TỬ */
-
-let danh_sach_nguyen_tu=[]
-let danh_sach_lien_ket=[]
-
-/* THÊM NGUYÊN TỬ */
-
-function themNguyenTu(){
-
-const loai=document.getElementById("chon_nguyen_to").value
-
-const nguyen_tu=new THREE.Mesh(
-
-new THREE.SphereGeometry(0.4,32,32),
-
-new THREE.MeshPhongMaterial({color:mau_nguyen_to[loai]})
-
-)
-
-nguyen_tu.position.x=Math.random()*4-2
-nguyen_tu.position.y=Math.random()*4-2
-
-nguyen_tu.userData.loai=loai
-
-canh.add(nguyen_tu)
-
-danh_sach_nguyen_tu.push(nguyen_tu)
-
-capNhatLienKet()
-
-}
-
-/* XÓA PHÂN TỬ */
-
-function xoaPhanTu(){
-
-danh_sach_nguyen_tu.forEach(n=>canh.remove(n))
-danh_sach_lien_ket.forEach(l=>canh.remove(l))
-
-danh_sach_nguyen_tu=[]
-danh_sach_lien_ket=[]
-
-}
-
-/* CẬP NHẬT LIÊN KẾT */
-
-function capNhatLienKet(){
-
-danh_sach_lien_ket.forEach(l=>canh.remove(l))
-
-danh_sach_lien_ket=[]
-
-for(let i=0;i<danh_sach_nguyen_tu.length;i++){
-
-for(let j=i+1;j<danh_sach_nguyen_tu.length;j++){
-
-let a=danh_sach_nguyen_tu[i]
-let b=danh_sach_nguyen_tu[j]
-
-let khoang_cach=a.position.distanceTo(b.position)
-
-if(khoang_cach<2){
-
-let vat_lieu=new THREE.LineBasicMaterial({color:0xffffff})
-
-let diem=[a.position,b.position]
-
-let hinh_hoc=new THREE.BufferGeometry().setFromPoints(diem)
-
-let duong=new THREE.Line(hinh_hoc,vat_lieu)
-
-canh.add(duong)
-
-danh_sach_lien_ket.push(duong)
-
-}
-
-}
-
-}
-
-}
-
-/* ORBITAL */
-
-let orbital_hien_tai
-
-function hienOrbital(loai){
-
-if(orbital_hien_tai) canh.remove(orbital_hien_tai)
-
-const vat_lieu=new THREE.MeshBasicMaterial({
-color:0x00ffff,
-wireframe:true
-})
-
-if(loai=="s"){
-
-orbital_hien_tai=new THREE.Mesh(
-new THREE.SphereGeometry(2,32,32),
-vat_lieu
-)
-
-}
-
-if(loai=="p"){
-
-const nhom=new THREE.Group()
-
-const h1=new THREE.Mesh(new THREE.SphereGeometry(1,32,32),vat_lieu)
-const h2=new THREE.Mesh(new THREE.SphereGeometry(1,32,32),vat_lieu)
-
-h1.position.x=1
-h2.position.x=-1
-
-nhom.add(h1)
-nhom.add(h2)
-
-orbital_hien_tai=nhom
-
-}
-
-if(loai=="d"){
-
-const nhom=new THREE.Group()
-
-for(let i=0;i<4;i++){
-
-let h=new THREE.Mesh(new THREE.SphereGeometry(.7,32,32),vat_lieu)
-
-h.position.x=Math.cos(i*Math.PI/2)*1.5
-h.position.y=Math.sin(i*Math.PI/2)*1.5
-
-nhom.add(h)
-
-}
-
-orbital_hien_tai=nhom
-
-}
-
-if(loai=="f"){
-
-orbital_hien_tai=new THREE.Mesh(
-new THREE.TorusKnotGeometry(1.5,0.3,100,16),
-vat_lieu
-)
-
-}
-
-canh.add(orbital_hien_tai)
-
-}
-
-/* DỮ LIỆU NĂNG LƯỢNG ION HÓA */
-
-const du_lieu_ion={
-nhan:["H","He","Li","Be","B","C","N","O","F","Ne"],
-gia_tri:[1312,2372,520,900,801,1086,1402,1314,1681,2080]
-}
-
-/* BIỂU ĐỒ */
-
-new Chart(document.getElementById("bieu_do"),{
-
-type:"line",
-
-data:{
-labels:du_lieu_ion.nhan,
-datasets:[{
-label:"Năng lượng ion hóa (kJ/mol)",
-data:du_lieu_ion.gia_tri,
-borderColor:"cyan"
-}]
-},
-
-options:{
-plugins:{
-legend:{labels:{color:"white"}}
-},
-scales:{
-x:{ticks:{color:"white"}},
-y:{ticks:{color:"white"}}
-}
-}
-
-})
-
-/* HOẠT HÌNH */
-
-function hoatHinh(){
-
-requestAnimationFrame(hoatHinh)
-
-danh_sach_nguyen_tu.forEach(n=>{
-n.rotation.y+=0.01
-})
-
-trinh_ket_xuat.render(canh,camera)
-
-}
-
-hoatHinh()
-
-</script>
+</div>
+
+<script src="js/elements.js"></script>
+<script src="js/orbitals.js"></script>
+<script src="js/molecule.js"></script>
+<script src="js/chart.js"></script>
+<script src="js/main.js"></script>
 
 </body>
 </html>
