@@ -1,24 +1,199 @@
 <!DOCTYPE html>
-<html>
+<html lang="vi">
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>3D Periodic Table</title>
-<link rel="stylesheet" href="style.css">
+
+<style>
+
+body{
+margin:0;
+font-family:Arial;
+background:#061633;
+color:white;
+text-align:center;
+}
+
+h1{
+margin:10px;
+}
+
+#search{
+padding:10px;
+width:250px;
+border-radius:6px;
+border:none;
+margin-bottom:20px;
+}
+
+#periodic-table{
+display:grid;
+grid-template-columns:repeat(18,1fr);
+gap:6px;
+max-width:1200px;
+margin:auto;
+}
+
+.element{
+background:#0b1f44;
+border-radius:6px;
+padding:10px;
+cursor:pointer;
+transition:0.2s;
+position:relative;
+}
+
+.element:hover{
+transform:scale(1.1);
+}
+
+.symbol{
+font-size:18px;
+font-weight:bold;
+}
+
+.number{
+font-size:10px;
+position:absolute;
+top:4px;
+left:6px;
+}
+
+.highlight{
+outline:3px solid yellow;
+}
+
+.alkali{background:#ff595e;}
+.alkaline{background:#ffca3a;}
+.transition{background:#1982c4;}
+.metalloid{background:#6a4c93;}
+.nonmetal{background:#2ec4b6;}
+.halogen{background:#f72585;}
+.noble{background:#4cc9f0;}
+
+.electron{
+width:4px;
+height:4px;
+background:white;
+border-radius:50%;
+position:absolute;
+top:50%;
+left:50%;
+animation:orbit 3s linear infinite;
+}
+
+@keyframes orbit{
+from{transform:rotate(0deg) translateX(12px) rotate(0deg);}
+to{transform:rotate(360deg) translateX(12px) rotate(-360deg);}
+}
+
+@media(max-width:800px){
+#periodic-table{
+grid-template-columns:repeat(9,1fr);
+}
+}
+
+</style>
 </head>
 
 <body>
 
-<h1>3D Periodic Table</h1>
+<h1>⚛️ 3D Periodic Table</h1>
 
-<div id="table"></div>
+<input type="text" id="search" placeholder="Tìm nguyên tố...">
 
-<div id="info">
-Chọn nguyên tố
-</div>
+<div id="periodic-table"></div>
 
-<div id="atom"></div>
+<script>
 
-<script src="script.js"></script>
+const elements=[
+
+{n:1,s:"H",name:"Hydrogen",g:"nonmetal"},
+{n:2,s:"He",name:"Helium",g:"noble"},
+{n:3,s:"Li",name:"Lithium",g:"alkali"},
+{n:4,s:"Be",name:"Beryllium",g:"alkaline"},
+{n:5,s:"B",name:"Boron",g:"metalloid"},
+{n:6,s:"C",name:"Carbon",g:"nonmetal"},
+{n:7,s:"N",name:"Nitrogen",g:"nonmetal"},
+{n:8,s:"O",name:"Oxygen",g:"nonmetal"},
+{n:9,s:"F",name:"Fluorine",g:"halogen"},
+{n:10,s:"Ne",name:"Neon",g:"noble"},
+
+{n:11,s:"Na",name:"Sodium",g:"alkali"},
+{n:12,s:"Mg",name:"Magnesium",g:"alkaline"},
+{n:13,s:"Al",name:"Aluminium",g:"transition"},
+{n:14,s:"Si",name:"Silicon",g:"metalloid"},
+{n:15,s:"P",name:"Phosphorus",g:"nonmetal"},
+{n:16,s:"S",name:"Sulfur",g:"nonmetal"},
+{n:17,s:"Cl",name:"Chlorine",g:"halogen"},
+{n:18,s:"Ar",name:"Argon",g:"noble"}
+
+];
+
+// tạo thêm nguyên tố giả để đủ 118
+for(let i=19;i<=118;i++){
+elements.push({
+n:i,
+s:"E"+i,
+name:"Element "+i,
+g:"transition"
+});
+}
+
+const table=document.getElementById("periodic-table");
+
+elements.forEach(el=>{
+
+let div=document.createElement("div");
+div.className="element "+el.g;
+div.dataset.group=el.g;
+div.dataset.name=el.name;
+
+div.innerHTML=
+`<div class="number">${el.n}</div>
+<div class="symbol">${el.s}</div>
+<div class="electron"></div>`;
+
+table.appendChild(div);
+
+});
+
+document.querySelectorAll(".element").forEach(el=>{
+el.addEventListener("click",()=>{
+
+let group=el.dataset.group;
+
+document.querySelectorAll(".element").forEach(e=>{
+e.classList.remove("highlight");
+});
+
+document.querySelectorAll(`[data-group="${group}"]`).forEach(e=>{
+e.classList.add("highlight");
+});
+
+});
+});
+
+document.getElementById("search").addEventListener("input",function(){
+
+let value=this.value.toLowerCase();
+
+document.querySelectorAll(".element").forEach(el=>{
+
+let name=el.dataset.name.toLowerCase();
+
+if(name.includes(value)){
+el.style.display="block";
+}else{
+el.style.display="none";
+}
+
+});
+
+});
+
+</script>
 
 </body>
 </html>
