@@ -1,8 +1,12 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="vi">
+
 <head>
 <meta charset="UTF-8">
-<title>Interactive Periodic Table</title>
+<title>Bảng Tuần Hoàn Tương Tác</title>
+
+<script src="https://cdn.jsdelivr.net/npm/three@0.158.0/build/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.158.0/examples/js/controls/OrbitControls.js"></script>
 
 <style>
 
@@ -22,7 +26,7 @@ margin:20px;
 display:block;
 margin:auto;
 padding:10px;
-width:250px;
+width:260px;
 font-size:16px;
 border-radius:8px;
 border:none;
@@ -45,33 +49,22 @@ flex-direction:column;
 justify-content:center;
 align-items:center;
 cursor:pointer;
-transition:0.2s;
 font-size:12px;
+transition:0.2s;
 }
 
 .element:hover{
 transform:scale(1.1);
 }
 
-.number{
-font-size:10px;
-opacity:0.7;
-}
+.number{font-size:10px}
+.symbol{font-size:18px;font-weight:bold}
+.name{font-size:9px}
 
-.symbol{
-font-size:18px;
-font-weight:bold;
-}
-
-.name{
-font-size:9px;
-}
-
-/* colors */
+/* màu */
 
 .alkali{background:#ef4444}
 .alkaline{background:#f97316}
-.transition{background:#3b82f6}
 .metalloid{background:#14b8a6}
 .nonmetal{background:#10b981}
 .halogen{background:#eab308}
@@ -88,12 +81,12 @@ background:#1e293b;
 padding:20px;
 border-radius:10px;
 display:none;
-width:300px;
+width:420px;
 }
 
-canvas{
-margin-top:10px;
-background:black;
+#atom{
+width:380px;
+height:300px;
 }
 
 </style>
@@ -101,55 +94,57 @@ background:black;
 
 <body>
 
-<h1>Interactive Periodic Table</h1>
+<h1>Bảng Tuần Hoàn Nguyên Tố</h1>
 
-<input id="search" placeholder="Search element...">
+<input id="search" placeholder="Tìm nguyên tố...">
 
 <div id="table"></div>
 
 <div id="popup">
+
 <h2 id="pname"></h2>
+
 <p id="pinfo"></p>
-<canvas id="atom" width="260" height="260"></canvas>
-<br><br>
-<button onclick="closePopup()">Close</button>
+
+<div id="atom"></div>
+
+<br>
+<button onclick="closePopup()">Đóng</button>
+
 </div>
 
 <script>
 
-const elements = [
-{n:1,s:"H",name:"Hydrogen",mass:1.008,group:1,period:1,cat:"nonmetal",conf:"1s1"},
-{n:2,s:"He",name:"Helium",mass:4.0026,group:18,period:1,cat:"noble",conf:"1s2"},
-{n:3,s:"Li",name:"Lithium",mass:6.94,group:1,period:2,cat:"alkali",conf:"[He]2s1"},
-{n:4,s:"Be",name:"Beryllium",mass:9.01,group:2,period:2,cat:"alkaline",conf:"[He]2s2"},
-{n:5,s:"B",name:"Boron",mass:10.81,group:13,period:2,cat:"metalloid",conf:"[He]2s2 2p1"},
-{n:6,s:"C",name:"Carbon",mass:12.01,group:14,period:2,cat:"nonmetal",conf:"[He]2s2 2p2"},
-{n:7,s:"N",name:"Nitrogen",mass:14.01,group:15,period:2,cat:"nonmetal",conf:"[He]2s2 2p3"},
-{n:8,s:"O",name:"Oxygen",mass:15.99,group:16,period:2,cat:"nonmetal",conf:"[He]2s2 2p4"},
-{n:9,s:"F",name:"Fluorine",mass:18.99,group:17,period:2,cat:"halogen",conf:"[He]2s2 2p5"},
-{n:10,s:"Ne",name:"Neon",mass:20.18,group:18,period:2,cat:"noble",conf:"[He]2s2 2p6"},
+/* dữ liệu */
 
-{n:11,s:"Na",name:"Sodium",mass:22.99,group:1,period:3,cat:"alkali",conf:"[Ne]3s1"},
-{n:12,s:"Mg",name:"Magnesium",mass:24.30,group:2,period:3,cat:"alkaline",conf:"[Ne]3s2"},
-{n:13,s:"Al",name:"Aluminium",mass:26.98,group:13,period:3,cat:"transition",conf:"[Ne]3s2 3p1"},
-{n:14,s:"Si",name:"Silicon",mass:28.08,group:14,period:3,cat:"metalloid",conf:"[Ne]3s2 3p2"},
-{n:15,s:"P",name:"Phosphorus",mass:30.97,group:15,period:3,cat:"nonmetal",conf:"[Ne]3s2 3p3"},
-{n:16,s:"S",name:"Sulfur",mass:32.06,group:16,cat:"nonmetal",group:16,period:3,conf:"[Ne]3s2 3p4"},
-{n:17,s:"Cl",name:"Chlorine",mass:35.45,group:17,period:3,cat:"halogen",conf:"[Ne]3s2 3p5"},
+const elements=[
+{n:1,s:"H",name:"Hiđrô",mass:1.008,group:1,period:1,cat:"nonmetal",conf:"1s1"},
+{n:2,s:"He",name:"Heli",mass:4.0026,group:18,period:1,cat:"noble",conf:"1s2"},
+{n:3,s:"Li",name:"Liti",mass:6.94,group:1,period:2,cat:"alkali",conf:"[He]2s1"},
+{n:4,s:"Be",name:"Beri",mass:9.01,group:2,period:2,cat:"alkaline",conf:"[He]2s2"},
+{n:5,s:"B",name:"Bo",mass:10.81,group:13,period:2,cat:"metalloid",conf:"[He]2s2 2p1"},
+{n:6,s:"C",name:"Cacbon",mass:12.01,group:14,period:2,cat:"nonmetal",conf:"[He]2s2 2p2"},
+{n:7,s:"N",name:"Nitơ",mass:14.01,group:15,period:2,cat:"nonmetal",conf:"[He]2s2 2p3"},
+{n:8,s:"O",name:"Oxi",mass:15.99,group:16,period:2,cat:"nonmetal",conf:"[He]2s2 2p4"},
+{n:9,s:"F",name:"Flo",mass:18.99,group:17,period:2,cat:"halogen",conf:"[He]2s2 2p5"},
+{n:10,s:"Ne",name:"Neon",mass:20.18,group:18,period:2,cat:"noble",conf:"[He]2s2 2p6"},
+{n:11,s:"Na",name:"Natri",mass:22.99,group:1,period:3,cat:"alkali",conf:"[Ne]3s1"},
+{n:12,s:"Mg",name:"Magiê",mass:24.30,group:2,period:3,cat:"alkaline",conf:"[Ne]3s2"},
+{n:13,s:"Al",name:"Nhôm",mass:26.98,group:13,period:3,cat:"metalloid",conf:"[Ne]3s2 3p1"},
+{n:14,s:"Si",name:"Silic",mass:28.08,group:14,period:3,cat:"metalloid",conf:"[Ne]3s2 3p2"},
+{n:15,s:"P",name:"Photpho",mass:30.97,group:15,period:3,cat:"nonmetal",conf:"[Ne]3s2 3p3"},
+{n:16,s:"S",name:"Lưu huỳnh",mass:32.06,group:16,period:3,cat:"nonmetal",conf:"[Ne]3s2 3p4"},
+{n:17,s:"Cl",name:"Clo",mass:35.45,group:17,period:3,cat:"halogen",conf:"[Ne]3s2 3p5"},
 {n:18,s:"Ar",name:"Argon",mass:39.95,group:18,period:3,cat:"noble",conf:"[Ne]3s2 3p6"}
 ]
 
 const table=document.getElementById("table")
 
-function draw(){
-
-table.innerHTML=""
-
 elements.forEach(e=>{
 
-const el=document.createElement("div")
-el.className="element "+e.cat
+let el=document.createElement("div")
 
+el.className="element "+e.cat
 el.style.gridColumn=e.group
 el.style.gridRow=e.period
 
@@ -165,21 +160,15 @@ table.appendChild(el)
 
 })
 
-}
-
-draw()
-
 /* search */
 
 document.getElementById("search").oninput=e=>{
 
-const q=e.target.value.toLowerCase()
+let q=e.target.value.toLowerCase()
 
 document.querySelectorAll(".element").forEach(el=>{
 
-const t=el.innerText.toLowerCase()
-
-el.style.display=t.includes(q)?"flex":"none"
+el.style.display=el.innerText.toLowerCase().includes(q)?"flex":"none"
 
 })
 
@@ -190,15 +179,17 @@ el.style.display=t.includes(q)?"flex":"none"
 function show(e){
 
 document.getElementById("popup").style.display="block"
+
 document.getElementById("pname").innerText=e.name
 
-document.getElementById("pinfo").innerHTML=`
-Atomic number: ${e.n}<br>
-Atomic mass: ${e.mass}<br>
-Electron config: ${e.conf}
+document.getElementById("pinfo").innerHTML=
+`
+Số nguyên tử: ${e.n}<br>
+Khối lượng nguyên tử: ${e.mass}<br>
+Cấu hình electron: ${e.conf}
 `
 
-drawAtom(e.n)
+createAtom(e.n)
 
 }
 
@@ -206,45 +197,59 @@ function closePopup(){
 document.getElementById("popup").style.display="none"
 }
 
-/* simple 3D atom */
+/* 3D atom */
 
-function drawAtom(z){
+function createAtom(z){
 
-const c=document.getElementById("atom")
-const ctx=c.getContext("2d")
+document.getElementById("atom").innerHTML=""
 
-let angle=0
+const scene=new THREE.Scene()
 
-function frame(){
+const camera=new THREE.PerspectiveCamera(75,380/300,0.1,1000)
+camera.position.z=5
 
-ctx.clearRect(0,0,260,260)
+const renderer=new THREE.WebGLRenderer()
+renderer.setSize(380,300)
 
-ctx.fillStyle="white"
-ctx.beginPath()
-ctx.arc(130,130,10,0,Math.PI*2)
-ctx.fill()
+document.getElementById("atom").appendChild(renderer.domElement)
 
-const r=60
+const controls=new THREE.OrbitControls(camera,renderer.domElement)
+
+const nucleus=new THREE.Mesh(
+new THREE.SphereGeometry(0.4,32,32),
+new THREE.MeshBasicMaterial({color:0xff4444})
+)
+
+scene.add(nucleus)
+
+/* electrons */
 
 for(let i=0;i<z;i++){
 
-let a=angle+i*(2*Math.PI/z)
+const e=new THREE.Mesh(
+new THREE.SphereGeometry(0.07,16,16),
+new THREE.MeshBasicMaterial({color:0x00ffff})
+)
 
-let x=130+Math.cos(a)*r
-let y=130+Math.sin(a)*r
+let angle=(i/z)*Math.PI*2
+e.position.x=Math.cos(angle)*2
+e.position.y=Math.sin(angle)*2
 
-ctx.beginPath()
-ctx.arc(x,y,3,0,Math.PI*2)
-ctx.fill()
-
-}
-
-angle+=0.02
-requestAnimationFrame(frame)
+scene.add(e)
 
 }
 
-frame()
+/* animation */
+
+function animate(){
+
+requestAnimationFrame(animate)
+scene.rotation.y+=0.005
+renderer.render(scene,camera)
+
+}
+
+animate()
 
 }
 
