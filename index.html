@@ -1,322 +1,250 @@
 <!DOCTYPE html>
-
-<html lang="vi">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Interactive Periodic Table</title>
-
-<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-
-<script src="https://cdn.jsdelivr.net/npm/three@0.128/examples/js/controls/OrbitControls.js"></script>
 
 <style>
 
 body{
-margin:0;
 font-family:Arial;
-background:#081b3a;
+background:#0f172a;
 color:white;
-text-align:center;
+margin:0;
 }
 
-/* SEARCH */
+h1{
+text-align:center;
+margin:20px;
+}
 
 #search{
-margin:15px;
+display:block;
+margin:auto;
 padding:10px;
-width:260px;
-border-radius:6px;
+width:250px;
+font-size:16px;
+border-radius:8px;
 border:none;
 }
 
-/* TABLE */
-
 #table{
 display:grid;
-grid-template-columns:repeat(18,1fr);
-gap:6px;
-max-width:1200px;
-margin:auto;
-padding:10px;
+grid-template-columns:repeat(18,60px);
+gap:4px;
+justify-content:center;
+margin-top:20px;
 }
 
 .element{
+width:60px;
+height:60px;
 border-radius:6px;
-padding:8px;
+display:flex;
+flex-direction:column;
+justify-content:center;
+align-items:center;
 cursor:pointer;
-font-size:12px;
-position:relative;
 transition:0.2s;
+font-size:12px;
 }
 
 .element:hover{
-transform:scale(1.08);
+transform:scale(1.1);
 }
 
-.num{
-font-size:9px;
-position:absolute;
-top:4px;
-left:6px;
+.number{
+font-size:10px;
+opacity:0.7;
 }
 
-.sym{
+.symbol{
 font-size:18px;
 font-weight:bold;
 }
 
-/* IUPAC COLORS */
+.name{
+font-size:9px;
+}
 
-.alkali{background:#ff6666}
-.alkaline{background:#ffdead}
-.transition{background:#ffc0cb}
-.post{background:#cccccc}
-.metalloid{background:#cccc99}
-.nonmetal{background:#a0ffa0}
-.halogen{background:#ffff99}
-.noble{background:#b0e0ff}
+/* colors */
 
-/* POPUP */
+.alkali{background:#ef4444}
+.alkaline{background:#f97316}
+.transition{background:#3b82f6}
+.metalloid{background:#14b8a6}
+.nonmetal{background:#10b981}
+.halogen{background:#eab308}
+.noble{background:#a855f7}
+
+/* popup */
 
 #popup{
 position:fixed;
 top:50%;
 left:50%;
 transform:translate(-50%,-50%);
-background:#0e2a55;
+background:#1e293b;
 padding:20px;
 border-radius:10px;
 display:none;
-width:320px;
+width:300px;
 }
 
-#viewer{
-height:350px;
-margin-top:15px;
-}
-
-button{
+canvas{
 margin-top:10px;
-padding:6px 10px;
-}
-
-/* MOBILE */
-
-@media(max-width:900px){
-
-#table{
-grid-template-columns:repeat(9,1fr);
-}
-
+background:black;
 }
 
 </style>
-
 </head>
 
 <body>
 
-<h2>⚛️ Interactive Periodic Table</h2>
+<h1>Interactive Periodic Table</h1>
 
-<input id="search" placeholder="Search element">
+<input id="search" placeholder="Search element...">
 
 <div id="table"></div>
 
 <div id="popup">
-
-<h3 id="name"></h3>
-<p id="info"></p>
-<p id="mass"></p>
-<p id="config"></p>
-
-<div id="viewer"></div>
-
+<h2 id="pname"></h2>
+<p id="pinfo"></p>
+<canvas id="atom" width="260" height="260"></canvas>
+<br><br>
 <button onclick="closePopup()">Close</button>
-
 </div>
 
 <script>
 
-/* BASIC ELEMENT DATA */
+const elements = [
+{n:1,s:"H",name:"Hydrogen",mass:1.008,group:1,period:1,cat:"nonmetal",conf:"1s1"},
+{n:2,s:"He",name:"Helium",mass:4.0026,group:18,period:1,cat:"noble",conf:"1s2"},
+{n:3,s:"Li",name:"Lithium",mass:6.94,group:1,period:2,cat:"alkali",conf:"[He]2s1"},
+{n:4,s:"Be",name:"Beryllium",mass:9.01,group:2,period:2,cat:"alkaline",conf:"[He]2s2"},
+{n:5,s:"B",name:"Boron",mass:10.81,group:13,period:2,cat:"metalloid",conf:"[He]2s2 2p1"},
+{n:6,s:"C",name:"Carbon",mass:12.01,group:14,period:2,cat:"nonmetal",conf:"[He]2s2 2p2"},
+{n:7,s:"N",name:"Nitrogen",mass:14.01,group:15,period:2,cat:"nonmetal",conf:"[He]2s2 2p3"},
+{n:8,s:"O",name:"Oxygen",mass:15.99,group:16,period:2,cat:"nonmetal",conf:"[He]2s2 2p4"},
+{n:9,s:"F",name:"Fluorine",mass:18.99,group:17,period:2,cat:"halogen",conf:"[He]2s2 2p5"},
+{n:10,s:"Ne",name:"Neon",mass:20.18,group:18,period:2,cat:"noble",conf:"[He]2s2 2p6"},
 
-const elements=[
-{n:1,s:"H",name:"Hydrogen",mass:1.008,group:1,row:1,type:"nonmetal",config:"1s¹",shell:[1]},
-{n:2,s:"He",name:"Helium",mass:4.0026,group:18,row:1,type:"noble",config:"1s²",shell:[2]},
+{n:11,s:"Na",name:"Sodium",mass:22.99,group:1,period:3,cat:"alkali",conf:"[Ne]3s1"},
+{n:12,s:"Mg",name:"Magnesium",mass:24.30,group:2,period:3,cat:"alkaline",conf:"[Ne]3s2"},
+{n:13,s:"Al",name:"Aluminium",mass:26.98,group:13,period:3,cat:"transition",conf:"[Ne]3s2 3p1"},
+{n:14,s:"Si",name:"Silicon",mass:28.08,group:14,period:3,cat:"metalloid",conf:"[Ne]3s2 3p2"},
+{n:15,s:"P",name:"Phosphorus",mass:30.97,group:15,period:3,cat:"nonmetal",conf:"[Ne]3s2 3p3"},
+{n:16,s:"S",name:"Sulfur",mass:32.06,group:16,cat:"nonmetal",group:16,period:3,conf:"[Ne]3s2 3p4"},
+{n:17,s:"Cl",name:"Chlorine",mass:35.45,group:17,period:3,cat:"halogen",conf:"[Ne]3s2 3p5"},
+{n:18,s:"Ar",name:"Argon",mass:39.95,group:18,period:3,cat:"noble",conf:"[Ne]3s2 3p6"}
+]
 
-{n:3,s:"Li",name:"Lithium",mass:6.94,group:1,row:2,type:"alkali",config:"[He]2s¹",shell:[2,1]},
-{n:4,s:"Be",name:"Beryllium",mass:9.0122,group:2,row:2,type:"alkaline",config:"[He]2s²",shell:[2,2]},
-{n:5,s:"B",name:"Boron",mass:10.81,group:13,row:2,type:"metalloid",config:"[He]2s²2p¹",shell:[2,3]},
-{n:6,s:"C",name:"Carbon",mass:12.011,group:14,row:2,type:"nonmetal",config:"[He]2s²2p²",shell:[2,4]},
-{n:7,s:"N",name:"Nitrogen",mass:14.007,group:15,row:2,type:"nonmetal",config:"[He]2s²2p³",shell:[2,5]},
-{n:8,s:"O",name:"Oxygen",mass:15.999,group:16,row:2,type:"nonmetal",config:"[He]2s²2p⁴",shell:[2,6]},
-{n:9,s:"F",name:"Fluorine",mass:18.998,group:17,row:2,type:"halogen",config:"[He]2s²2p⁵",shell:[2,7]},
-{n:10,s:"Ne",name:"Neon",mass:20.180,group:18,row:2,type:"noble",config:"[He]2s²2p⁶",shell:[2,8]}
-];
+const table=document.getElementById("table")
 
-/* AUTO GENERATE REST */
+function draw(){
 
-for(let i=11;i<=118;i++){
+table.innerHTML=""
 
-elements.push({
-n:i,
-s:"E"+i,
-name:"Element "+i,
-mass:(i*2),
-group:(i%18)+1,
-row:Math.floor(i/18)+1,
-type:"transition",
-config:"unknown",
-shell:[2,8,8]
-});
+elements.forEach(e=>{
+
+const el=document.createElement("div")
+el.className="element "+e.cat
+
+el.style.gridColumn=e.group
+el.style.gridRow=e.period
+
+el.innerHTML=`
+<div class="number">${e.n}</div>
+<div class="symbol">${e.s}</div>
+<div class="name">${e.name}</div>
+`
+
+el.onclick=()=>show(e)
+
+table.appendChild(el)
+
+})
 
 }
 
-/* BUILD TABLE */
+draw()
 
-const table=document.getElementById("table");
+/* search */
 
-elements.forEach(el=>{
+document.getElementById("search").oninput=e=>{
 
-let d=document.createElement("div");
-
-d.className="element "+el.type;
-
-d.style.gridColumn=el.group;
-d.style.gridRow=el.row;
-
-d.dataset.search=(el.name+el.s+el.n).toLowerCase();
-
-d.innerHTML=
-`<div class="num">${el.n}</div>
-<div class="sym">${el.s}</div>`;
-
-d.onclick=()=>openElement(el);
-
-table.appendChild(d);
-
-});
-
-/* SEARCH */
-
-document.getElementById("search").oninput=function(){
-
-let v=this.value.toLowerCase();
+const q=e.target.value.toLowerCase()
 
 document.querySelectorAll(".element").forEach(el=>{
 
-if(el.dataset.search.includes(v)){
-el.style.display="block";
-}else{
-el.style.display="none";
+const t=el.innerText.toLowerCase()
+
+el.style.display=t.includes(q)?"flex":"none"
+
+})
+
 }
 
-});
+/* popup */
 
-};
+function show(e){
 
-/* POPUP */
+document.getElementById("popup").style.display="block"
+document.getElementById("pname").innerText=e.name
 
-function openElement(el){
+document.getElementById("pinfo").innerHTML=`
+Atomic number: ${e.n}<br>
+Atomic mass: ${e.mass}<br>
+Electron config: ${e.conf}
+`
 
-document.getElementById("popup").style.display="block";
-
-document.getElementById("name").innerText=el.name;
-document.getElementById("info").innerText="Atomic number: "+el.n;
-document.getElementById("mass").innerText="Atomic mass: "+el.mass;
-document.getElementById("config").innerText="Electron config: "+el.config;
-
-buildAtom(el.shell);
+drawAtom(e.n)
 
 }
 
 function closePopup(){
-document.getElementById("popup").style.display="none";
+document.getElementById("popup").style.display="none"
 }
 
-/* 3D ATOM */
+/* simple 3D atom */
 
-let scene,camera,renderer,controls;
+function drawAtom(z){
 
-function buildAtom(shell){
+const c=document.getElementById("atom")
+const ctx=c.getContext("2d")
 
-document.getElementById("viewer").innerHTML="";
+let angle=0
 
-scene=new THREE.Scene();
+function frame(){
 
-camera=new THREE.PerspectiveCamera(
-75,
-300/350,
-0.1,
-1000
-);
+ctx.clearRect(0,0,260,260)
 
-renderer=new THREE.WebGLRenderer();
+ctx.fillStyle="white"
+ctx.beginPath()
+ctx.arc(130,130,10,0,Math.PI*2)
+ctx.fill()
 
-renderer.setSize(300,350);
+const r=60
 
-document.getElementById("viewer").appendChild(renderer.domElement);
+for(let i=0;i<z;i++){
 
-controls=new THREE.OrbitControls(camera,renderer.domElement);
+let a=angle+i*(2*Math.PI/z)
 
-camera.position.z=40;
+let x=130+Math.cos(a)*r
+let y=130+Math.sin(a)*r
 
-/* nucleus */
-
-const geo=new THREE.SphereGeometry(2,32,32);
-const mat=new THREE.MeshBasicMaterial({color:0xffff00});
-const nucleus=new THREE.Mesh(geo,mat);
-scene.add(nucleus);
-
-/* electrons */
-
-shell.forEach((count,i)=>{
-
-let r=6+(i*5);
-
-for(let j=0;j<count;j++){
-
-const eGeo=new THREE.SphereGeometry(0.6,16,16);
-const eMat=new THREE.MeshBasicMaterial({color:0x00ffff});
-
-const e=new THREE.Mesh(eGeo,eMat);
-
-let angle=(j/count)*Math.PI*2;
-
-e.userData={r,angle};
-
-scene.add(e);
+ctx.beginPath()
+ctx.arc(x,y,3,0,Math.PI*2)
+ctx.fill()
 
 }
 
-});
-
-/* animate */
-
-function animate(){
-
-requestAnimationFrame(animate);
-
-scene.children.forEach(o=>{
-
-if(o.userData.r){
-
-o.userData.angle+=0.02;
-
-o.position.x=Math.cos(o.userData.angle)*o.userData.r;
-o.position.z=Math.sin(o.userData.angle)*o.userData.r;
+angle+=0.02
+requestAnimationFrame(frame)
 
 }
 
-});
-
-controls.update();
-
-renderer.render(scene,camera);
-
-}
-
-animate();
+frame()
 
 }
 
