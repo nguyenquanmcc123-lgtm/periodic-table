@@ -2,7 +2,7 @@
 <html lang="vi">
 <head>
 <meta charset="UTF-8">
-<title>Bảng tuần hoàn 3D</title>
+<title>Bảng tuần hoàn 3D nâng cấp</title>
 
 <script src="https://cdn.jsdelivr.net/npm/three@0.158.0/build/three.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.158.0/examples/js/controls/OrbitControls.js"></script>
@@ -12,7 +12,7 @@
 body{
 margin:0;
 font-family:Arial;
-background:#0f172a;
+background:linear-gradient(135deg,#0f172a,#020617);
 color:white;
 }
 
@@ -24,37 +24,40 @@ margin:20px;
 #search{
 display:block;
 margin:auto;
-padding:10px;
-width:260px;
-border-radius:8px;
+padding:12px;
+width:300px;
+border-radius:10px;
 border:none;
+font-size:15px;
 }
 
 #table{
 display:grid;
-grid-template-columns:repeat(18,65px);
+grid-template-columns:repeat(18,70px);
 gap:6px;
 justify-content:center;
-margin-top:20px;
+margin-top:25px;
 }
 
 .element{
-height:65px;
-border-radius:8px;
+height:70px;
+border-radius:10px;
 display:flex;
 flex-direction:column;
 align-items:center;
 justify-content:center;
 cursor:pointer;
 transition:.2s;
+box-shadow:0 0 8px rgba(0,0,0,0.5);
 }
 
 .element:hover{
 transform:scale(1.15);
+box-shadow:0 0 15px cyan;
 }
 
 .number{font-size:10px}
-.symbol{font-size:20px;font-weight:bold}
+.symbol{font-size:22px;font-weight:bold}
 .name{font-size:9px}
 
 .alkali{background:#ef4444}
@@ -71,12 +74,14 @@ background:#1e293b;
 padding:20px;
 border-radius:12px;
 display:none;
-width:500px;
+width:520px;
+box-shadow:0 0 30px black;
 }
 
 #atom3d{
-width:450px;
-height:300px;
+width:480px;
+height:320px;
+margin:auto;
 }
 
 button{
@@ -85,6 +90,8 @@ border:none;
 border-radius:6px;
 cursor:pointer;
 margin-top:10px;
+background:#3b82f6;
+color:white;
 }
 
 </style>
@@ -94,7 +101,7 @@ margin-top:10px;
 
 <h1>🧪 Bảng Tuần Hoàn Tương Tác</h1>
 
-<input id="search" placeholder="Tìm nguyên tố...">
+<input id="search" placeholder="Tìm tên, ký hiệu hoặc số nguyên tử">
 
 <div id="table"></div>
 
@@ -114,7 +121,7 @@ margin-top:10px;
 
 <script>
 
-/* dữ liệu nguyên tố */
+/* dữ liệu */
 
 const elements=[
 {n:1,s:"H",name:"Hiđrô",group:1,period:1,cat:"nonmetal"},
@@ -136,8 +143,6 @@ const elements=[
 {n:17,s:"Cl",name:"Clo",group:17,period:3,cat:"halogen"},
 {n:18,s:"Ar",name:"Argon",group:18,period:3,cat:"noble"}
 ]
-
-/* vẽ bảng */
 
 const table=document.getElementById("table")
 
@@ -169,13 +174,15 @@ let q=e.target.value.toLowerCase()
 
 document.querySelectorAll(".element").forEach(el=>{
 
-el.style.display=el.innerText.toLowerCase().includes(q)?"flex":"none"
+let txt=el.innerText.toLowerCase()
+
+el.style.display=txt.includes(q)?"flex":"none"
 
 })
 
 }
 
-/* tính cấu hình electron */
+/* electron config */
 
 function electronConfig(z){
 
@@ -183,27 +190,26 @@ const order=[
 ["1s",2],["2s",2],["2p",6],
 ["3s",2],["3p",6],
 ["4s",2],["3d",10],
-["4p",6],["5s",2],
-["4d",10],["5p",6],
-["6s",2]
+["4p",6]
 ]
 
 let result=""
-let electrons=z
+let e=z
 
-for(let [orbital,max] of order){
+for(let o of order){
 
-if(electrons<=0) break
+if(e<=0)break
 
-let fill=Math.min(electrons,max)
+let fill=Math.min(o[1],e)
 
-result+=orbital+fill+" "
+result+=o[0]+fill+" "
 
-electrons-=fill
+e-=fill
 
 }
 
 return result
+
 }
 
 /* popup */
@@ -238,57 +244,126 @@ fetch("https://vi.wikipedia.org/api/rest_v1/page/summary/"+name)
 .then(r=>r.json())
 
 .then(d=>{
+
 wiki.innerText=d.extract||"Không tìm thấy thông tin."
+
+})
+
+.catch(()=>{
+
+wiki.innerText="Không tải được Wikipedia."
+
 })
 
 }
 
-/* mô hình nguyên tử */
+/* electron shell */
+
+function shells(z){
+
+const cap=[2,8,18,32]
+let arr=[]
+let e=z
+
+for(let c of cap){
+
+let fill=Math.min(c,e)
+
+arr.push(fill)
+
+e-=fill
+
+if(e<=0)break
+
+}
+
+return arr
+
+}
+
+/* atom 3D */
 
 function createAtom(z){
 
 atom3d.innerHTML=""
 
 const scene=new THREE.Scene()
-const camera=new THREE.PerspectiveCamera(75,450/300,0.1,1000)
-camera.position.z=6
 
-const renderer=new THREE.WebGLRenderer()
-renderer.setSize(450,300)
+const camera=new THREE.PerspectiveCamera(75,480/320,0.1,1000)
+camera.position.z=8
+
+const renderer=new THREE.WebGLRenderer({antialias:true})
+renderer.setSize(480,320)
 
 atom3d.appendChild(renderer.domElement)
 
 new THREE.OrbitControls(camera,renderer.domElement)
 
+/* light */
+
+const light=new THREE.PointLight(0xffffff,1)
+light.position.set(5,5,5)
+scene.add(light)
+
+/* nucleus */
+
 const nucleus=new THREE.Mesh(
-new THREE.SphereGeometry(0.4,32,32),
-new THREE.MeshBasicMaterial({color:0xff4444})
+new THREE.SphereGeometry(0.5,32,32),
+new THREE.MeshPhongMaterial({color:0xff4444})
 )
 
 scene.add(nucleus)
 
-const orbit=new THREE.Mesh(
-new THREE.TorusGeometry(2,0.02,16,100),
+/* shells */
+
+let shellData=shells(z)
+
+let electrons=[]
+
+shellData.forEach((count,i)=>{
+
+let r=1.5+i*1.2
+
+let orbit=new THREE.Mesh(
+new THREE.TorusGeometry(r,0.01,16,100),
 new THREE.MeshBasicMaterial({color:0xffffff})
 )
 
 orbit.rotation.x=Math.PI/2
 scene.add(orbit)
 
-const electron=new THREE.Mesh(
-new THREE.SphereGeometry(0.1,16,16),
+for(let j=0;j<count;j++){
+
+let e=new THREE.Mesh(
+new THREE.SphereGeometry(0.08,16,16),
 new THREE.MeshBasicMaterial({color:0x00ffff})
 )
 
-electron.position.x=2
-scene.add(electron)
+scene.add(e)
+
+electrons.push({
+mesh:e,
+radius:r,
+angle:(j/count)*Math.PI*2,
+speed:0.01+Math.random()*0.01
+})
+
+}
+
+})
 
 function animate(){
 
 requestAnimationFrame(animate)
 
-electron.position.x=Math.cos(Date.now()*0.002)*2
-electron.position.z=Math.sin(Date.now()*0.002)*2
+electrons.forEach(e=>{
+
+e.angle+=e.speed
+
+e.mesh.position.x=Math.cos(e.angle)*e.radius
+e.mesh.position.z=Math.sin(e.angle)*e.radius
+
+})
 
 renderer.render(scene,camera)
 
