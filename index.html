@@ -10,7 +10,7 @@
 
 body{
 margin:0;
-font-family:Arial, sans-serif;
+font-family:Arial;
 background:#071b3a;
 color:white;
 text-align:center;
@@ -26,19 +26,13 @@ border:none;
 }
 
 /* TABLE */
-#table-wrapper{
-width:100%;
-overflow-x:auto;
-display:flex;
-justify-content:center;
-}
-
 #periodic-table{
 display:grid;
-grid-template-columns:repeat(18,minmax(45px,1fr));
+grid-template-columns:repeat(18,1fr);
 gap:6px;
 padding:10px;
 max-width:1000px;
+margin:auto;
 }
 
 /* ELEMENT BOX */
@@ -101,7 +95,7 @@ to{transform:rotate(360deg) translateX(12px) rotate(-360deg);}
 @media(max-width:900px){
 
 #periodic-table{
-grid-template-columns:repeat(9,minmax(40px,1fr));
+grid-template-columns:repeat(9,1fr);
 }
 
 }
@@ -116,13 +110,12 @@ grid-template-columns:repeat(9,minmax(40px,1fr));
 
 <input id="search" placeholder="Tìm nguyên tố...">
 
-<div id="table-wrapper">
 <div id="periodic-table"></div>
-</div>
 
 <script>
 
 const elements=[
+
 {n:1,s:"H",name:"Hydrogen",g:"nonmetal"},
 {n:2,s:"He",name:"Helium",g:"noble"},
 {n:3,s:"Li",name:"Lithium",g:"alkali"},
@@ -133,6 +126,7 @@ const elements=[
 {n:8,s:"O",name:"Oxygen",g:"nonmetal"},
 {n:9,s:"F",name:"Fluorine",g:"halogen"},
 {n:10,s:"Ne",name:"Neon",g:"noble"},
+
 {n:11,s:"Na",name:"Sodium",g:"alkali"},
 {n:12,s:"Mg",name:"Magnesium",g:"alkaline"},
 {n:13,s:"Al",name:"Aluminium",g:"transition"},
@@ -141,17 +135,15 @@ const elements=[
 {n:16,s:"S",name:"Sulfur",g:"nonmetal"},
 {n:17,s:"Cl",name:"Chlorine",g:"halogen"},
 {n:18,s:"Ar",name:"Argon",g:"noble"}
-];
 
-for(let i=19;i<=118;i++){
-elements.push({n:i,s:"E"+i,name:"Element "+i,g:"transition"});
-}
+];
 
 const table=document.getElementById("periodic-table");
 
 elements.forEach(el=>{
 
 let div=document.createElement("div");
+
 div.className="element "+el.g;
 div.dataset.group=el.g;
 div.dataset.name=el.name;
@@ -165,7 +157,10 @@ table.appendChild(div);
 
 });
 
+/* CLICK HIGHLIGHT GROUP */
+
 document.querySelectorAll(".element").forEach(el=>{
+
 el.onclick=()=>{
 
 let group=el.dataset.group;
@@ -179,13 +174,17 @@ e.classList.add("highlight");
 });
 
 };
+
 });
+
+/* SEARCH */
 
 document.getElementById("search").addEventListener("input",function(){
 
 let v=this.value.toLowerCase();
 
 document.querySelectorAll(".element").forEach(el=>{
+
 let name=el.dataset.name.toLowerCase();
 
 if(name.includes(v)){
