@@ -6,6 +6,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>3D Periodic Table</title>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+
 <style>
 
 body{
@@ -17,25 +19,28 @@ text-align:center;
 }
 
 /* SEARCH */
+
 #search{
 margin:15px;
 padding:10px;
-width:260px;
+width:250px;
 border-radius:6px;
 border:none;
 }
 
 /* TABLE */
+
 #table{
 display:grid;
 grid-template-columns:repeat(18,1fr);
 gap:6px;
-max-width:1200px;
+max-width:1100px;
 margin:auto;
 padding:10px;
 }
 
 /* ELEMENT */
+
 .element{
 border-radius:8px;
 padding:8px;
@@ -46,7 +51,7 @@ transition:0.2s;
 }
 
 .element:hover{
-transform:scale(1.08);
+transform:scale(1.1);
 }
 
 .num{
@@ -72,25 +77,33 @@ font-weight:bold;
 .halogen{background:#ffff99}
 .noble{background:#b0e0ff}
 
-/* ELECTRON CANVAS */
+/* POPUP */
 
-#orbit{
-margin-top:20px;
+#popup{
+position:fixed;
+top:50%;
+left:50%;
+transform:translate(-50%,-50%);
+background:#0c1f44;
+padding:20px;
+border-radius:10px;
+display:none;
+}
+
+#popup button{
+margin-top:10px;
+}
+
+/* 3D AREA */
+
+#viewer{
+width:100%;
+height:400px;
+margin-top:30px;
 }
 
 canvas{
-background:#020b22;
-border-radius:10px;
-}
-
-/* MOBILE */
-
-@media(max-width:900px){
-
-#table{
-grid-template-columns:repeat(9,1fr);
-}
-
+display:block;
 }
 
 </style>
@@ -101,48 +114,36 @@ grid-template-columns:repeat(9,1fr);
 
 <h2>⚛️ 3D Periodic Table</h2>
 
-<input id="search" placeholder="Search element">
+<input id="search" placeholder="Tìm nguyên tố">
 
 <div id="table"></div>
 
-<div id="orbit">
-<canvas id="atom" width="250" height="250"></canvas>
+<div id="popup">
+<h3 id="pname"></h3>
+<p id="pnum"></p>
+<button onclick="closePopup()">Đóng</button>
 </div>
+
+<div id="viewer"></div>
 
 <script>
 
 /* ELEMENT DATA */
 
 const elements=[
-{n:1,s:"H",p:1,g:"nonmetal"},
-{n:2,s:"He",p:18,g:"noble"},
-
-{n:3,s:"Li",p:1,g:"alkali"},
-{n:4,s:"Be",p:2,g:"alkaline"},
-{n:5,s:"B",p:13,g:"metalloid"},
-{n:6,s:"C",p:14,g:"nonmetal"},
-{n:7,s:"N",p:15,g:"nonmetal"},
-{n:8,s:"O",p:16,g:"nonmetal"},
-{n:9,s:"F",p:17,g:"halogen"},
-{n:10,s:"Ne",p:18,g:"noble"},
-
-{n:11,s:"Na",p:1,g:"alkali"},
-{n:12,s:"Mg",p:2,g:"alkaline"},
-{n:13,s:"Al",p:13,g:"post"},
-{n:14,s:"Si",p:14,g:"metalloid"},
-{n:15,s:"P",p:15,g:"nonmetal"},
-{n:16,s:"S",p:16,g:"nonmetal"},
-{n:17,s:"Cl",p:17,g:"halogen"},
-{n:18,s:"Ar",p:18,g:"noble"}
+{n:1,s:"H",name:"Hydrogen",g:"nonmetal",shell:[1]},
+{n:2,s:"He",name:"Helium",g:"noble",shell:[2]},
+{n:3,s:"Li",name:"Lithium",g:"alkali",shell:[2,1]},
+{n:4,s:"Be",name:"Beryllium",g:"alkaline",shell:[2,2]},
+{n:5,s:"B",name:"Boron",g:"metalloid",shell:[2,3]},
+{n:6,s:"C",name:"Carbon",g:"nonmetal",shell:[2,4]},
+{n:7,s:"N",name:"Nitrogen",g:"nonmetal",shell:[2,5]},
+{n:8,s:"O",name:"Oxygen",g:"nonmetal",shell:[2,6]},
+{n:9,s:"F",name:"Fluorine",g:"halogen",shell:[2,7]},
+{n:10,s:"Ne",name:"Neon",g:"noble",shell:[2,8]}
 ];
 
-/* ADD FAKE TO 118 */
-
-for(let i=19;i<=118;i++){
-elements.push({n:i,s:"E"+i,p:(i%18)+1,g:"transition"});
-}
-
-/* CREATE TABLE */
+/* BUILD TABLE */
 
 const table=document.getElementById("table");
 
@@ -151,34 +152,18 @@ elements.forEach(el=>{
 let d=document.createElement("div");
 
 d.className="element "+el.g;
-d.style.gridColumn=el.p;
 
-d.dataset.group=el.g;
-d.dataset.name=el.s.toLowerCase();
+d.dataset.name=el.name.toLowerCase();
 
 d.innerHTML=
 `<div class="num">${el.n}</div>
 <div class="sym">${el.s}</div>`;
 
-d.onclick=()=>highlight(el.g);
+d.onclick=()=>showElement(el);
 
 table.appendChild(d);
 
 });
-
-/* HIGHLIGHT GROUP */
-
-function highlight(g){
-
-document.querySelectorAll(".element").forEach(e=>{
-e.style.outline="none";
-});
-
-document.querySelectorAll("."+g).forEach(e=>{
-e.style.outline="3px solid yellow";
-});
-
-}
 
 /* SEARCH */
 
@@ -198,49 +183,114 @@ el.style.display="none";
 
 };
 
-/* 3D ELECTRON ORBIT */
+/* POPUP */
 
-const canvas=document.getElementById("atom");
-const ctx=canvas.getContext("2d");
+function showElement(el){
 
-let angle=0;
+document.getElementById("pname").innerText=el.name;
+document.getElementById("pnum").innerText="Atomic number: "+el.n;
 
-function draw(){
+document.getElementById("popup").style.display="block";
 
-ctx.clearRect(0,0,250,250);
-
-let cx=125;
-let cy=125;
-
-ctx.fillStyle="yellow";
-ctx.beginPath();
-ctx.arc(cx,cy,8,0,Math.PI*2);
-ctx.fill();
-
-for(let i=1;i<=3;i++){
-
-ctx.strokeStyle="white";
-ctx.beginPath();
-ctx.arc(cx,cy,30*i,0,Math.PI*2);
-ctx.stroke();
-
-let ex=cx+Math.cos(angle+i)*30*i;
-let ey=cy+Math.sin(angle+i)*30*i;
-
-ctx.fillStyle="cyan";
-ctx.beginPath();
-ctx.arc(ex,ey,4,0,Math.PI*2);
-ctx.fill();
+buildAtom(el.shell);
 
 }
 
-angle+=0.03;
+function closePopup(){
+document.getElementById("popup").style.display="none";
+}
 
-requestAnimationFrame(draw);
+/* THREEJS ATOM */
+
+let scene,camera,renderer;
+
+function buildAtom(shell){
+
+document.getElementById("viewer").innerHTML="";
+
+scene=new THREE.Scene();
+
+camera=new THREE.PerspectiveCamera(
+75,
+window.innerWidth/400,
+0.1,
+1000
+);
+
+renderer=new THREE.WebGLRenderer();
+
+renderer.setSize(window.innerWidth,400);
+
+document.getElementById("viewer").appendChild(renderer.domElement);
+
+camera.position.z=40;
+
+/* nucleus */
+
+const geo=new THREE.SphereGeometry(2,32,32);
+const mat=new THREE.MeshBasicMaterial({color:0xffff00});
+const nucleus=new THREE.Mesh(geo,mat);
+scene.add(nucleus);
+
+/* shells */
+
+shell.forEach((count,i)=>{
+
+let r=6+(i*4);
+
+const orbitGeo=new THREE.RingGeometry(r,r+0.05,64);
+const orbitMat=new THREE.MeshBasicMaterial({
+color:0xffffff,
+side:THREE.DoubleSide
+});
+
+const ring=new THREE.Mesh(orbitGeo,orbitMat);
+ring.rotation.x=Math.PI/2;
+scene.add(ring);
+
+for(let j=0;j<count;j++){
+
+const eGeo=new THREE.SphereGeometry(0.5,16,16);
+const eMat=new THREE.MeshBasicMaterial({color:0x00ffff});
+
+const e=new THREE.Mesh(eGeo,eMat);
+
+let angle=(j/count)*Math.PI*2;
+
+e.userData={r,angle};
+
+scene.add(e);
 
 }
 
-draw();
+});
+
+/* animate */
+
+function animate(){
+
+requestAnimationFrame(animate);
+
+scene.children.forEach(o=>{
+
+if(o.userData.r){
+
+o.userData.angle+=0.02;
+
+o.position.x=Math.cos(o.userData.angle)*o.userData.r;
+o.position.z=Math.sin(o.userData.angle)*o.userData.r;
+
+}
+
+});
+
+renderer.render(scene,camera);
+
+}
+
+animate();
+
+}
 
 </script>
 
