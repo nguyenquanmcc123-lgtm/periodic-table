@@ -1,9 +1,8 @@
 <!DOCTYPE html>
 <html lang="vi">
 <head>
-
 <meta charset="UTF-8">
-<title>Bảng tuần hoàn 3D</title>
+<title>Phòng thí nghiệm Hóa học 3D</title>
 
 <script src="https://cdn.jsdelivr.net/npm/three@0.158.0/build/three.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.158.0/examples/js/controls/OrbitControls.js"></script>
@@ -17,9 +16,11 @@ background:#0f172a;
 color:white;
 }
 
-h1{
+header{
 text-align:center;
-margin:20px;
+padding:20px;
+font-size:26px;
+font-weight:bold;
 }
 
 #search{
@@ -32,57 +33,36 @@ border:none;
 }
 
 #table{
-
 display:grid;
-grid-template-columns:repeat(18,65px);
-gap:6px;
-
+grid-template-columns:repeat(18,60px);
+gap:5px;
 justify-content:center;
-
 margin-top:20px;
-
 }
 
 .element{
-
-height:65px;
+height:60px;
 border-radius:8px;
-
 display:flex;
 flex-direction:column;
-
 align-items:center;
 justify-content:center;
-
 cursor:pointer;
-
+font-size:12px;
 transition:.2s;
-
 }
 
 .element:hover{
-
 transform:scale(1.15);
-
 }
 
 .number{font-size:10px}
+.symbol{font-size:18px;font-weight:bold}
+.name{font-size:9px}
 
-.symbol{
-font-size:20px;
-font-weight:bold
-}
-
-.name{
-font-size:9px
-}
-
-/* màu chuẩn */
+/* màu */
 
 .alkali{background:#ef4444}
-.alkaline{background:#f97316}
-.transition{background:#3b82f6}
-.metalloid{background:#14b8a6}
 .nonmetal{background:#10b981}
 .halogen{background:#eab308}
 .noble{background:#a855f7}
@@ -90,51 +70,42 @@ font-size:9px
 /* popup */
 
 #popup{
-
 position:fixed;
-
 top:50%;
 left:50%;
-
 transform:translate(-50%,-50%);
-
 background:#1e293b;
-
 padding:20px;
-
 border-radius:12px;
-
 display:none;
-
-width:450px;
-
-box-shadow:0 0 20px black;
-
+width:500px;
 }
 
-#atom{
-
-width:400px;
+#atom3d{
+width:450px;
 height:300px;
+}
 
+#molecule3d{
+width:450px;
+height:300px;
+margin-top:10px;
 }
 
 button{
-
 padding:8px 16px;
 border:none;
 border-radius:6px;
 cursor:pointer;
-
+margin-top:10px;
 }
 
 </style>
-
 </head>
 
 <body>
 
-<h1>🧪 Bảng Tuần Hoàn Tương Tác</h1>
+<header>🧪 Phòng thí nghiệm Hóa học 3D</header>
 
 <input id="search" placeholder="Tìm nguyên tố...">
 
@@ -144,11 +115,13 @@ cursor:pointer;
 
 <h2 id="pname"></h2>
 
-<p id="pinfo"></p>
+<p id="wiki"></p>
 
-<div id="atom"></div>
+<h3>Mô hình nguyên tử</h3>
+<div id="atom3d"></div>
 
-<br>
+<h3>Mô hình phân tử</h3>
+<div id="molecule3d"></div>
 
 <button onclick="closePopup()">Đóng</button>
 
@@ -156,73 +129,46 @@ cursor:pointer;
 
 <script>
 
-/* tạo dữ liệu 118 nguyên tố */
+/* dữ liệu nguyên tố */
 
-const elements=[]
-
-const names=[
-"Hiđrô","Heli","Liti","Beri","Bo","Cacbon","Nitơ","Oxi","Flo","Neon",
-"Natri","Magiê","Nhôm","Silic","Photpho","Lưu huỳnh","Clo","Argon"
+const elements=[
+{n:1,s:"H",name:"Hiđrô",group:1,period:1,cat:"nonmetal"},
+{n:2,s:"He",name:"Heli",group:18,period:1,cat:"noble"},
+{n:3,s:"Li",name:"Liti",group:1,period:2,cat:"alkali"},
+{n:4,s:"Be",name:"Beri",group:2,period:2,cat:"alkali"},
+{n:5,s:"B",name:"Bo",group:13,period:2,cat:"nonmetal"},
+{n:6,s:"C",name:"Cacbon",group:14,period:2,cat:"nonmetal"},
+{n:7,s:"N",name:"Nitơ",group:15,period:2,cat:"nonmetal"},
+{n:8,s:"O",name:"Oxi",group:16,period:2,cat:"nonmetal"},
+{n:9,s:"F",name:"Flo",group:17,period:2,cat:"halogen"},
+{n:10,s:"Ne",name:"Neon",group:18,period:2,cat:"noble"}
 ]
-
-for(let i=1;i<=118;i++){
-
-elements.push({
-
-n:i,
-s:"E"+i,
-name:names[i-1]||("Nguyên tố "+i),
-
-mass:Math.round(i*2.1),
-
-group:(i%18)+1,
-
-period:Math.ceil(i/18),
-
-cat:["alkali","alkaline","transition","metalloid","nonmetal","halogen","noble"][i%7],
-
-conf:"đang cập nhật"
-
-})
-
-}
 
 /* vẽ bảng */
 
 const table=document.getElementById("table")
-
-function draw(){
-
-table.innerHTML=""
 
 elements.forEach(e=>{
 
 let el=document.createElement("div")
 
 el.className="element "+e.cat
-
 el.style.gridColumn=e.group
 el.style.gridRow=e.period
 
 el.innerHTML=`
-
 <div class="number">${e.n}</div>
 <div class="symbol">${e.s}</div>
 <div class="name">${e.name}</div>
-
 `
 
-el.onclick=()=>show(e)
+el.onclick=()=>showElement(e)
 
 table.appendChild(el)
 
 })
 
-}
-
-draw()
-
-/* search */
+/* tìm kiếm */
 
 search.oninput=e=>{
 
@@ -238,80 +184,83 @@ el.style.display=el.innerText.toLowerCase().includes(q)?"flex":"none"
 
 /* popup */
 
-function show(e){
+function showElement(e){
 
 popup.style.display="block"
 
 pname.innerText=e.name
 
-pinfo.innerHTML=`
-
-Số nguyên tử: ${e.n}<br>
-Khối lượng nguyên tử: ${e.mass}<br>
-Cấu hình electron: ${e.conf}
-
-`
+loadWiki(e.name)
 
 createAtom(e.n)
+
+createMolecule()
 
 }
 
 function closePopup(){
-
 popup.style.display="none"
+}
+
+/* lấy info Wikipedia */
+
+function loadWiki(name){
+
+fetch("https://vi.wikipedia.org/api/rest_v1/page/summary/"+name)
+
+.then(r=>r.json())
+
+.then(d=>{
+wiki.innerText=d.extract||"Không tìm thấy thông tin."
+})
 
 }
 
-/* tạo atom 3D */
+/* mô hình nguyên tử */
 
 function createAtom(z){
 
-atom.innerHTML=""
+atom3d.innerHTML=""
 
 const scene=new THREE.Scene()
-
-const camera=new THREE.PerspectiveCamera(75,400/300,0.1,1000)
+const camera=new THREE.PerspectiveCamera(75,450/300,0.1,1000)
 camera.position.z=6
 
 const renderer=new THREE.WebGLRenderer()
-renderer.setSize(400,300)
+renderer.setSize(450,300)
 
-atom.appendChild(renderer.domElement)
+atom3d.appendChild(renderer.domElement)
 
-const controls=new THREE.OrbitControls(camera,renderer.domElement)
+new THREE.OrbitControls(camera,renderer.domElement)
 
 /* nucleus */
 
 const nucleus=new THREE.Mesh(
-
-new THREE.SphereGeometry(0.5,32,32),
-
+new THREE.SphereGeometry(0.4,32,32),
 new THREE.MeshBasicMaterial({color:0xff4444})
-
 )
 
 scene.add(nucleus)
 
-/* electrons */
+/* orbit */
 
-for(let i=0;i<z;i++){
-
-const electron=new THREE.Mesh(
-
-new THREE.SphereGeometry(0.07,16,16),
-
-new THREE.MeshBasicMaterial({color:0x00ffff})
-
+const orbit=new THREE.Mesh(
+new THREE.TorusGeometry(2,0.02,16,100),
+new THREE.MeshBasicMaterial({color:0xffffff})
 )
 
-let angle=i/z*Math.PI*2
+orbit.rotation.x=Math.PI/2
+scene.add(orbit)
 
-electron.position.x=Math.cos(angle)*2
-electron.position.y=Math.sin(angle)*2
+/* electron */
 
+const electron=new THREE.Mesh(
+new THREE.SphereGeometry(0.1,16,16),
+new THREE.MeshBasicMaterial({color:0x00ffff})
+)
+
+electron.position.x=2
 scene.add(electron)
-
-}
 
 /* animation */
 
@@ -319,7 +268,80 @@ function animate(){
 
 requestAnimationFrame(animate)
 
-scene.rotation.y+=0.003
+electron.position.x=Math.cos(Date.now()*0.002)*2
+electron.position.z=Math.sin(Date.now()*0.002)*2
+
+renderer.render(scene,camera)
+
+}
+
+animate()
+
+}
+
+/* mô hình phân tử */
+
+function createMolecule(){
+
+molecule3d.innerHTML=""
+
+const scene=new THREE.Scene()
+
+const camera=new THREE.PerspectiveCamera(75,450/300,0.1,1000)
+camera.position.z=5
+
+const renderer=new THREE.WebGLRenderer()
+renderer.setSize(450,300)
+
+molecule3d.appendChild(renderer.domElement)
+
+new THREE.OrbitControls(camera,renderer.domElement)
+
+/* H2O */
+
+const oxygen=new THREE.Mesh(
+new THREE.SphereGeometry(0.5,32,32),
+new THREE.MeshBasicMaterial({color:0xff0000})
+)
+
+scene.add(oxygen)
+
+const h1=new THREE.Mesh(
+new THREE.SphereGeometry(0.3,32,32),
+new THREE.MeshBasicMaterial({color:0xffffff})
+)
+
+h1.position.set(1,0,0)
+
+const h2=h1.clone()
+h2.position.set(-1,0,0)
+
+scene.add(h1)
+scene.add(h2)
+
+/* bonds */
+
+const bond1=new THREE.Mesh(
+new THREE.CylinderGeometry(0.05,0.05,1),
+new THREE.MeshBasicMaterial({color:0xaaaaaa})
+)
+
+bond1.rotation.z=Math.PI/2
+bond1.position.x=0.5
+
+scene.add(bond1)
+
+const bond2=bond1.clone()
+bond2.position.x=-0.5
+scene.add(bond2)
+
+/* animation */
+
+function animate(){
+
+requestAnimationFrame(animate)
+
+scene.rotation.y+=0.01
 
 renderer.render(scene,camera)
 
