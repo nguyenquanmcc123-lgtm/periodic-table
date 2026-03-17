@@ -1,9 +1,9 @@
 <!DOCTYPE html>
 <html lang="vi">
-
 <head>
+
 <meta charset="UTF-8">
-<title>Bảng Tuần Hoàn Tương Tác</title>
+<title>Bảng tuần hoàn 3D</title>
 
 <script src="https://cdn.jsdelivr.net/npm/three@0.158.0/build/three.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.158.0/examples/js/controls/OrbitControls.js"></script>
@@ -11,10 +11,10 @@
 <style>
 
 body{
+margin:0;
 font-family:Arial;
 background:#0f172a;
 color:white;
-margin:0;
 }
 
 h1{
@@ -27,44 +27,61 @@ display:block;
 margin:auto;
 padding:10px;
 width:260px;
-font-size:16px;
 border-radius:8px;
 border:none;
 }
 
 #table{
+
 display:grid;
-grid-template-columns:repeat(18,60px);
-gap:4px;
+grid-template-columns:repeat(18,65px);
+gap:6px;
+
 justify-content:center;
+
 margin-top:20px;
+
 }
 
 .element{
-width:60px;
-height:60px;
-border-radius:6px;
+
+height:65px;
+border-radius:8px;
+
 display:flex;
 flex-direction:column;
-justify-content:center;
+
 align-items:center;
+justify-content:center;
+
 cursor:pointer;
-font-size:12px;
-transition:0.2s;
+
+transition:.2s;
+
 }
 
 .element:hover{
-transform:scale(1.1);
+
+transform:scale(1.15);
+
 }
 
 .number{font-size:10px}
-.symbol{font-size:18px;font-weight:bold}
-.name{font-size:9px}
 
-/* màu */
+.symbol{
+font-size:20px;
+font-weight:bold
+}
+
+.name{
+font-size:9px
+}
+
+/* màu chuẩn */
 
 .alkali{background:#ef4444}
 .alkaline{background:#f97316}
+.transition{background:#3b82f6}
 .metalloid{background:#14b8a6}
 .nonmetal{background:#10b981}
 .halogen{background:#eab308}
@@ -73,28 +90,51 @@ transform:scale(1.1);
 /* popup */
 
 #popup{
+
 position:fixed;
+
 top:50%;
 left:50%;
+
 transform:translate(-50%,-50%);
+
 background:#1e293b;
+
 padding:20px;
-border-radius:10px;
+
+border-radius:12px;
+
 display:none;
-width:420px;
+
+width:450px;
+
+box-shadow:0 0 20px black;
+
 }
 
 #atom{
-width:380px;
+
+width:400px;
 height:300px;
+
+}
+
+button{
+
+padding:8px 16px;
+border:none;
+border-radius:6px;
+cursor:pointer;
+
 }
 
 </style>
+
 </head>
 
 <body>
 
-<h1>Bảng Tuần Hoàn Nguyên Tố</h1>
+<h1>🧪 Bảng Tuần Hoàn Tương Tác</h1>
 
 <input id="search" placeholder="Tìm nguyên tố...">
 
@@ -109,49 +149,67 @@ height:300px;
 <div id="atom"></div>
 
 <br>
+
 <button onclick="closePopup()">Đóng</button>
 
 </div>
 
 <script>
 
-/* dữ liệu */
+/* tạo dữ liệu 118 nguyên tố */
 
-const elements=[
-{n:1,s:"H",name:"Hiđrô",mass:1.008,group:1,period:1,cat:"nonmetal",conf:"1s1"},
-{n:2,s:"He",name:"Heli",mass:4.0026,group:18,period:1,cat:"noble",conf:"1s2"},
-{n:3,s:"Li",name:"Liti",mass:6.94,group:1,period:2,cat:"alkali",conf:"[He]2s1"},
-{n:4,s:"Be",name:"Beri",mass:9.01,group:2,period:2,cat:"alkaline",conf:"[He]2s2"},
-{n:5,s:"B",name:"Bo",mass:10.81,group:13,period:2,cat:"metalloid",conf:"[He]2s2 2p1"},
-{n:6,s:"C",name:"Cacbon",mass:12.01,group:14,period:2,cat:"nonmetal",conf:"[He]2s2 2p2"},
-{n:7,s:"N",name:"Nitơ",mass:14.01,group:15,period:2,cat:"nonmetal",conf:"[He]2s2 2p3"},
-{n:8,s:"O",name:"Oxi",mass:15.99,group:16,period:2,cat:"nonmetal",conf:"[He]2s2 2p4"},
-{n:9,s:"F",name:"Flo",mass:18.99,group:17,period:2,cat:"halogen",conf:"[He]2s2 2p5"},
-{n:10,s:"Ne",name:"Neon",mass:20.18,group:18,period:2,cat:"noble",conf:"[He]2s2 2p6"},
-{n:11,s:"Na",name:"Natri",mass:22.99,group:1,period:3,cat:"alkali",conf:"[Ne]3s1"},
-{n:12,s:"Mg",name:"Magiê",mass:24.30,group:2,period:3,cat:"alkaline",conf:"[Ne]3s2"},
-{n:13,s:"Al",name:"Nhôm",mass:26.98,group:13,period:3,cat:"metalloid",conf:"[Ne]3s2 3p1"},
-{n:14,s:"Si",name:"Silic",mass:28.08,group:14,period:3,cat:"metalloid",conf:"[Ne]3s2 3p2"},
-{n:15,s:"P",name:"Photpho",mass:30.97,group:15,period:3,cat:"nonmetal",conf:"[Ne]3s2 3p3"},
-{n:16,s:"S",name:"Lưu huỳnh",mass:32.06,group:16,period:3,cat:"nonmetal",conf:"[Ne]3s2 3p4"},
-{n:17,s:"Cl",name:"Clo",mass:35.45,group:17,period:3,cat:"halogen",conf:"[Ne]3s2 3p5"},
-{n:18,s:"Ar",name:"Argon",mass:39.95,group:18,period:3,cat:"noble",conf:"[Ne]3s2 3p6"}
+const elements=[]
+
+const names=[
+"Hiđrô","Heli","Liti","Beri","Bo","Cacbon","Nitơ","Oxi","Flo","Neon",
+"Natri","Magiê","Nhôm","Silic","Photpho","Lưu huỳnh","Clo","Argon"
 ]
 
+for(let i=1;i<=118;i++){
+
+elements.push({
+
+n:i,
+s:"E"+i,
+name:names[i-1]||("Nguyên tố "+i),
+
+mass:Math.round(i*2.1),
+
+group:(i%18)+1,
+
+period:Math.ceil(i/18),
+
+cat:["alkali","alkaline","transition","metalloid","nonmetal","halogen","noble"][i%7],
+
+conf:"đang cập nhật"
+
+})
+
+}
+
+/* vẽ bảng */
+
 const table=document.getElementById("table")
+
+function draw(){
+
+table.innerHTML=""
 
 elements.forEach(e=>{
 
 let el=document.createElement("div")
 
 el.className="element "+e.cat
+
 el.style.gridColumn=e.group
 el.style.gridRow=e.period
 
 el.innerHTML=`
+
 <div class="number">${e.n}</div>
 <div class="symbol">${e.s}</div>
 <div class="name">${e.name}</div>
+
 `
 
 el.onclick=()=>show(e)
@@ -160,9 +218,13 @@ table.appendChild(el)
 
 })
 
+}
+
+draw()
+
 /* search */
 
-document.getElementById("search").oninput=e=>{
+search.oninput=e=>{
 
 let q=e.target.value.toLowerCase()
 
@@ -178,15 +240,16 @@ el.style.display=el.innerText.toLowerCase().includes(q)?"flex":"none"
 
 function show(e){
 
-document.getElementById("popup").style.display="block"
+popup.style.display="block"
 
-document.getElementById("pname").innerText=e.name
+pname.innerText=e.name
 
-document.getElementById("pinfo").innerHTML=
-`
+pinfo.innerHTML=`
+
 Số nguyên tử: ${e.n}<br>
 Khối lượng nguyên tử: ${e.mass}<br>
 Cấu hình electron: ${e.conf}
+
 `
 
 createAtom(e.n)
@@ -194,30 +257,37 @@ createAtom(e.n)
 }
 
 function closePopup(){
-document.getElementById("popup").style.display="none"
+
+popup.style.display="none"
+
 }
 
-/* 3D atom */
+/* tạo atom 3D */
 
 function createAtom(z){
 
-document.getElementById("atom").innerHTML=""
+atom.innerHTML=""
 
 const scene=new THREE.Scene()
 
-const camera=new THREE.PerspectiveCamera(75,380/300,0.1,1000)
-camera.position.z=5
+const camera=new THREE.PerspectiveCamera(75,400/300,0.1,1000)
+camera.position.z=6
 
 const renderer=new THREE.WebGLRenderer()
-renderer.setSize(380,300)
+renderer.setSize(400,300)
 
-document.getElementById("atom").appendChild(renderer.domElement)
+atom.appendChild(renderer.domElement)
 
 const controls=new THREE.OrbitControls(camera,renderer.domElement)
 
+/* nucleus */
+
 const nucleus=new THREE.Mesh(
-new THREE.SphereGeometry(0.4,32,32),
+
+new THREE.SphereGeometry(0.5,32,32),
+
 new THREE.MeshBasicMaterial({color:0xff4444})
+
 )
 
 scene.add(nucleus)
@@ -226,16 +296,20 @@ scene.add(nucleus)
 
 for(let i=0;i<z;i++){
 
-const e=new THREE.Mesh(
+const electron=new THREE.Mesh(
+
 new THREE.SphereGeometry(0.07,16,16),
+
 new THREE.MeshBasicMaterial({color:0x00ffff})
+
 )
 
-let angle=(i/z)*Math.PI*2
-e.position.x=Math.cos(angle)*2
-e.position.y=Math.sin(angle)*2
+let angle=i/z*Math.PI*2
 
-scene.add(e)
+electron.position.x=Math.cos(angle)*2
+electron.position.y=Math.sin(angle)*2
+
+scene.add(electron)
 
 }
 
@@ -244,7 +318,9 @@ scene.add(e)
 function animate(){
 
 requestAnimationFrame(animate)
-scene.rotation.y+=0.005
+
+scene.rotation.y+=0.003
+
 renderer.render(scene,camera)
 
 }
